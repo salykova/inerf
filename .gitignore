@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Testing/debugging stuff
+#tests/
+
+# PyCharm IDE
+.idea/
+
+# Training data
+data/
+logs/
+tiny_nerf_data.npz
