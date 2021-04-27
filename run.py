@@ -1,24 +1,14 @@
-import os, sys
-import numpy as np
-import imageio
-import json
-import random
-import time
+import os
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm, trange
-from utils import config_parser
-from load_blender import load_blender_data
-from nerf_helpers import *
-from render_helpers import render_path
-import matplotlib.pyplot as plt
-from torchsearchsorted import searchsorted
+import imageio
+import numpy as np
+import cv2
+from utils import config_parser, load_img, show_img, find_ipoints
+from nerf_helpers import get_embedder, NeRF, run_network
+from render_helpers import render, to8b
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(0)
-DEBUG = False
 
 def create_nerf(args):
     """Instantiate NeRF's MLP model.
@@ -77,6 +67,11 @@ def create_nerf(args):
         if model_fine is not None:
             model_fine.load_state_dict(ckpt['network_fine_state_dict'])
 
+    # Disable updating of weights
+    for param in model.parameters():
+        param.requires_grad = False
+    for param in model_fine.parameters():
+        param.requires_grad = False
     ##########################
 
     render_kwargs_train = {
@@ -103,34 +98,33 @@ def create_nerf(args):
 
     return render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer
 
-def train():
-
+def run():
+    # Parameters
     parser = config_parser()
     args = parser.parse_args()
-
-    images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip)
-    print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
-    i_train, i_val, i_test = i_split
-
-    near = 2.
-    far = 6.
-
-    images = images[..., :3] * images[..., -1:] + (1. - images[..., -1:])
-    H, W, focal = hwf
-    H, W = int(H), int(W)
-    hwf = [H, W, focal]
-
-    if args.render_test:
-        render_poses = np.array(poses[i_test])
-
-    # Create log dir and copy the config file
     basedir = args.basedir
     expname = args.expname
 
-    # Create nerf model
+    # Loading and processing of observed image
+    oimg_numb = 1
+    oimg, hwf = load_img(os.path.join(args.oidir, 'oimg_' + str(oimg_numb) + '.png'),
+                                  args.half_res, args.white_bkgd)  # rgb image with elements in range 0...255
+    if DEBUG:
+        show_img("Observed image", oimg)
+
+    ipoints_coords = find_ipoints(oimg, DEBUG) # xy pixel coordinates of interest points (N x 2)
+    I = 2
+    kernel_size = 3
+    dilated_oimg = cv2.dilate(oimg, np.ones((kernel_size, kernel_size), np.uint8), iterations = I)
+    if DEBUG:
+        show_img("Dilated image", dilated_oimg)
+
+    dilated_oimg = (np.array(dilated_oimg) / 255.).astype(np.float32)
+
+    # Load NeRF Model
+    near, far = 2., 6.
     render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(args)
     global_step = start
-
     bds_dict = {
         'near': near,
         'far': far,
@@ -138,31 +132,34 @@ def train():
     render_kwargs_train.update(bds_dict)
     render_kwargs_test.update(bds_dict)
 
-    # Move testing data to GPU
-    render_poses = torch.Tensor(render_poses).to(device)
+    #end_pose = [[-0.999970555305481, 0.0056571876630187035, -0.00517683569341898, -0.020868491381406784],
+                #[-0.007668337319046259,-0.7377116084098816, 0.675072431564331, 2.721303939819336],
+                #[-4.6566125955216364e-10, 0.675092339515686, 0.7377332448959351, 2.973897933959961],
+                #[0.0, 0.0, 0.0, 1.0]]
+    #end_pose = np.array(end_pose).astype(np.float32)
+    #end_pose = torch.Tensor(end_pose).to(device)
 
-    # Rendering
+    start_pose = [[-0.999970555305481, 0.0056571876630187035, -0.00517683569341898, -0.020868491381406784],
+                [-0.007668337319046259,-0.7377116084098816, 0.675072431564331, 2.721303939819336],
+                [-4.6566125955216364e-10, 0.675092339515686, 0.7377332448959351, 2.973897933959961],
+                [0.0, 0.0, 0.0, 1.0]]
+    start_pose = np.array(start_pose).astype(np.float32)
+    start_pose = torch.Tensor(start_pose).to(device)
+
+    H, W, focal = hwf
+    H, W = int(H), int(W)
+
     print('RENDER ONLY')
-    with torch.no_grad():
-        if args.render_test:
-            # render_test switches to test poses
-            images = images[i_test]
-        else:
-            # Default is smoother render_poses path
-            images = None
+    rgb, disp, acc, _ = render(H, W, focal, chunk=args.chunk, c2w=start_pose[:3,:4], **render_kwargs_test)
+    testsavedir = os.path.join(basedir, expname, 'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
+    os.makedirs(testsavedir, exist_ok=True)
+    rgb = rgb.cpu().numpy()
+    rgb8 = to8b(rgb)
+    filename = os.path.join(testsavedir, '0.png')
+    imageio.imwrite(filename, rgb8)
 
-        testsavedir = os.path.join(basedir, expname,
-                                   'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
-        os.makedirs(testsavedir, exist_ok=True)
-        print('test poses shape', render_poses.shape)
-
-        rgbs, _ = render_path(render_poses, hwf, args.chunk, render_kwargs_test, gt_imgs=images, savedir=testsavedir,
-                              render_factor=args.render_factor)
-        print('Done rendering', testsavedir)
-        imageio.mimwrite(os.path.join(testsavedir, 'video.mp4'), to8b(rgbs), fps=30, quality=8)
-        return
-
+DEBUG = False
 
 if __name__=='__main__':
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    train()
+    run()

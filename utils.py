@@ -1,7 +1,22 @@
+import torch
+import numpy as np
+import imageio
+import cv2
+
+
+# Misc
+img2mse = lambda x, y : torch.mean((x - y) ** 2)
+mse2psnr = lambda x : -10. * torch.log(x) / torch.log(torch.Tensor([10.]))
+to8b = lambda x : (255*np.clip(x,0,1)).astype(np.uint8)
+
+
 def config_parser():
 
     import configargparse
     parser = configargparse.ArgumentParser()
+
+    parser.add_argument("--oidir", type=str, default='./data/nerf_synthetic/lego/oimgs',
+                        help='where to store observed images')
     parser.add_argument('--config', is_config_file=True,
                         help='config file path')
     parser.add_argument("--expname", type=str,
@@ -74,17 +89,17 @@ def config_parser():
     parser.add_argument("--testskip", type=int, default=8,
                         help='will load 1/N images from test/val sets, useful for large datasets like deepvoxels')
 
-    ## deepvoxels flags
+    # deepvoxels flags
     parser.add_argument("--shape", type=str, default='greek',
                         help='options : armchair / cube / greek / vase')
 
-    ## blender flags
+    # blender flags
     parser.add_argument("--white_bkgd", action='store_true',
                         help='set to render synthetic data on a white bkgd (always use for dvoxels)')
     parser.add_argument("--half_res", action='store_true',
                         help='load blender synthetic data at 400x400 instead of 800x800')
 
-    ## llff flags
+    # llff flags
     parser.add_argument("--factor", type=int, default=8,
                         help='downsample factor for LLFF images')
     parser.add_argument("--no_ndc", action='store_true',
@@ -109,3 +124,49 @@ def config_parser():
                         help='frequency of render_poses video saving')
 
     return parser
+
+
+def load_img(img_path, half_res, white_bkgd):
+    img_rgba = imageio.imread(img_path)
+    img_rgba = (np.array(img_rgba) / 255.).astype(np.float32) # rgba image of type float32
+    H, W = img_rgba.shape[:2]
+    camera_angle_x = 0.6911112070083618
+    focal = .5 * W / np.tan(.5 * camera_angle_x)
+    if white_bkgd:
+        img_rgb = img_rgba[..., :3] * img_rgba[..., -1:] + (1. - img_rgba[..., -1:])
+    else:
+        img_rgb = img_rgba[..., :3]
+
+    if half_res:
+        H = H // 2
+        W = W // 2
+        focal = focal / 2.
+        img_rgb = cv2.resize(img_rgb, (W, H), interpolation=cv2.INTER_AREA)
+
+    img_rgb = np.asarray(img_rgb*255, dtype=np.uint8)
+    return img_rgb, [H, W, focal] # images of type uint8
+
+
+def rgb2bgr(img_rgb):
+    img_bgr = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+    return img_bgr
+
+
+def show_img(title, img_rgb):  # img - rgb image
+    img_bgr = rgb2bgr(img_rgb)
+    cv2.imshow(title, img_bgr)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+def find_ipoints(img_rgb, DEBUG=False): # img - RGB image in range 0...255
+    img = np.copy(img_rgb)
+    img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    sift = cv2.SIFT_create()
+    keypoints = sift.detect(img_gray, None)
+    if DEBUG:
+        img = cv2.drawKeypoints(img_gray, keypoints, img)
+        show_img("Detected points", img)
+    xy = [keypoint.pt for keypoint in keypoints]
+    xy = np.array(xy).astype(int)
+    return xy # pixel coordinates

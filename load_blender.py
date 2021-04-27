@@ -13,16 +13,18 @@ trans_t = lambda t : torch.Tensor([
     [0,0,1,t],
     [0,0,0,1]]).float()
 
+# rotation around x axis
 rot_phi = lambda phi : torch.Tensor([
     [1,0,0,0],
     [0,np.cos(phi),-np.sin(phi),0],
     [0,np.sin(phi), np.cos(phi),0],
     [0,0,0,1]]).float()
 
+# rotation around y axis
 rot_theta = lambda th : torch.Tensor([
-    [np.cos(th),0,-np.sin(th),0],
+    [np.cos(th),0,np.sin(th),0],
     [0,1,0,0],
-    [np.sin(th),0, np.cos(th),0],
+    [-np.sin(th),0, np.cos(th),0],
     [0,0,0,1]]).float()
 
 
@@ -31,6 +33,7 @@ def pose_spherical(theta, phi, radius):
     c2w = rot_phi(phi/180.*np.pi) @ c2w
     c2w = rot_theta(theta/180.*np.pi) @ c2w
     c2w = torch.Tensor(np.array([[-1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1]])) @ c2w
+    c2w = torch.Tensor(np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])) @ c2w
     return c2w
 
 
@@ -72,8 +75,8 @@ def load_blender_data(basedir, half_res=False, testskip=1):
     camera_angle_x = float(meta['camera_angle_x'])
     focal = .5 * W / np.tan(.5 * camera_angle_x)
     
-    render_poses = torch.stack([pose_spherical(angle, -30.0, 4.0) for angle in np.linspace(-180,180,40+1)[:-1]], 0)
-    
+    #render_poses = torch.stack([pose_spherical(angle, -30.0, 4.0) for angle in np.linspace(-180,180,40+1)[:-1]], 0)
+    render_poses = torch.stack([pose_spherical(0, 0.0, 4.0)], 0)
     if half_res:
         H = H//2
         W = W//2
@@ -81,7 +84,7 @@ def load_blender_data(basedir, half_res=False, testskip=1):
 
         imgs_half_res = np.zeros((imgs.shape[0], H, W, 4))
         for i, img in enumerate(imgs):
-            imgs_half_res[i] = cv2.resize(img, (H, W), interpolation=cv2.INTER_AREA)
+            imgs_half_res[i] = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)
         imgs = imgs_half_res
         # imgs = tf.image.resize_area(imgs, [400, 400]).numpy()
 
