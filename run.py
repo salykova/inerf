@@ -106,20 +106,21 @@ def run():
     expname = args.expname
 
     # Loading and processing of observed image
-    oimg_numb = 1
-    oimg, hwf = load_img(os.path.join(args.oidir, 'oimg_' + str(oimg_numb) + '.png'),
+    obs_img_numb = 1
+    obs_img, hwf = load_img(os.path.join(args.oidir, 'obs_img_' + str(obs_img_numb) + '.png'),
                                   args.half_res, args.white_bkgd)  # rgb image with elements in range 0...255
     if DEBUG:
-        show_img("Observed image", oimg)
+        show_img("Observed image", obs_img)
 
-    ipoints_coords = find_ipoints(oimg, DEBUG) # xy pixel coordinates of interest points (N x 2)
+    ipoints_coords = find_ipoints(obs_img, DEBUG) # xy pixel coordinates of interest points (N x 2)
     I = 2
     kernel_size = 3
-    dilated_oimg = cv2.dilate(oimg, np.ones((kernel_size, kernel_size), np.uint8), iterations = I)
-    if DEBUG:
-        show_img("Dilated image", dilated_oimg)
 
-    dilated_oimg = (np.array(dilated_oimg) / 255.).astype(np.float32)
+    dil_obs_img = cv2.dilate(obs_img, np.ones((kernel_size, kernel_size), np.uint8), iterations = I)
+    if DEBUG:
+        show_img("Dilated image", dil_obs_img)
+
+    dil_obs_img = (np.array(dil_obs_img) / 255.).astype(np.float32)
 
     # Load NeRF Model
     near, far = 2., 6.
@@ -148,6 +149,11 @@ def run():
 
     H, W, focal = hwf
     H, W = int(H), int(W)
+
+    batch_size = 2048
+    region_size = kernel_size ** 2
+    region_num = int(batch_size / region_size)
+
 
     print('RENDER ONLY')
     rgb, disp, acc, _ = render(H, W, focal, chunk=args.chunk, c2w=start_pose[:3,:4], **render_kwargs_test)

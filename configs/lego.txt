@@ -2,7 +2,7 @@ expname = lego_test
 basedir = ./logs
 datadir = ./data/nerf_synthetic/lego
 dataset_type = blender
-oidir = ./data/nerf_synthetic/lego/oimgs
+oidir = ./data/nerf_synthetic/lego/obs_imgs
 
 no_batching = True
 
