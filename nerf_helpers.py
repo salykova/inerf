@@ -1,11 +1,64 @@
 import torch
+import os
 torch.autograd.set_detect_anomaly(True)
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-# TODO: remove this dependency
-from torchsearchsorted import searchsorted
+
+def load_nerf(args, device):
+    """Instantiate NeRF's MLP model.
+    """
+    embed_fn, input_ch = get_embedder(args.multires, args.i_embed)
+    embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed)
+    output_ch = 4
+    skips = [4]
+    model = NeRF(D=args.netdepth, W=args.netwidth,
+                 input_ch=input_ch, output_ch=output_ch, skips=skips,
+                 input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+
+    model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+                      input_ch=input_ch, output_ch=output_ch, skips=skips,
+                      input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+
+    network_query_fn = lambda inputs, viewdirs, network_fn: run_network(inputs, viewdirs, network_fn,
+                                                                        embed_fn=embed_fn,
+                                                                        embeddirs_fn=embeddirs_fn,
+                                                                        netchunk=args.netchunk)
+    # Load checkpoint
+    model_name = args.model_name
+    ckpt_dir = args.ckpt_dir
+    ckpt_name = args.ckpt_name
+    ckpt_path = os.path.join(ckpt_dir, model_name, ckpt_name+'.tar')
+    print('Found ckpts', ckpt_path)
+    print('Reloading from', ckpt_path)
+    ckpt = torch.load(ckpt_path)
+
+    # Load model
+    model.load_state_dict(ckpt['network_fn_state_dict'])
+    model_fine.load_state_dict(ckpt['network_fine_state_dict'])
+
+    render_kwargs = {
+        'network_query_fn': network_query_fn,
+        'perturb': args.perturb,
+        'N_importance': args.N_importance,
+        'network_fine': model_fine,
+        'N_samples': args.N_samples,
+        'network_fn': model,
+        'use_viewdirs': args.use_viewdirs,
+        'white_bkgd': args.white_bkgd,
+        'raw_noise_std': args.raw_noise_std,
+        'ndc' : False,
+        'lindisp' : args.lindisp
+    }
+
+    # Disable updating of the weights
+    for param in model.parameters():
+        param.requires_grad = False
+    for param in model_fine.parameters():
+        param.requires_grad = False
+
+    return render_kwargs
 
 
 # Positional encoding (section 5.1)

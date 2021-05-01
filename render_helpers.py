@@ -5,7 +5,7 @@ import time
 import imageio
 import numpy as np
 import torch.nn.functional as F
-from nerf_helpers import searchsorted
+from torchsearchsorted import searchsorted
 from utils import to8b
 DEBUG = False
 

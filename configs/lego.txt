@@ -1,20 +1,20 @@
-expname = lego_test
-basedir = ./logs
-datadir = ./data/nerf_synthetic/lego
+model_name = lego
+output_dir = ./output
+data_dir = ./data/nerf_synthetic/lego
 dataset_type = blender
-oidir = ./data/nerf_synthetic/lego/obs_imgs
-
-no_batching = True
+obs_imgs_dir = ./data/nerf_synthetic/lego/obs_imgs
+ckpt_dir = ./ckpts
+ckpt_name = lego
 
 use_viewdirs = True
 white_bkgd = True
-lrate_decay = 500
-
 N_samples = 32
 N_importance = 64
-N_rand = 512
-
-precrop_iters = 500
-precrop_frac = 0.5
-
 half_res = True
+
+obs_img_num = 30
+dil_iter = 1
+kernel_size = 3
+start_pose_num = 48
+batch_size = 500
+lrate = 0.01
