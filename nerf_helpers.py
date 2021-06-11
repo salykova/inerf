@@ -47,10 +47,14 @@ def load_nerf(args, device):
         'network_fn': model,
         'use_viewdirs': args.use_viewdirs,
         'white_bkgd': args.white_bkgd,
-        'raw_noise_std': args.raw_noise_std,
-        'ndc' : False,
-        'lindisp' : args.lindisp
+        'raw_noise_std': args.raw_noise_std
     }
+
+    # NDC only good for LLFF-style forward facing data
+    if args.dataset_type != 'llff' or args.no_ndc:
+        print('Not ndc!')
+        render_kwargs['ndc'] = False
+        render_kwargs['lindisp'] = args.lindisp
 
     # Disable updating of the weights
     for param in model.parameters():

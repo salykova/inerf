@@ -3,7 +3,7 @@ import torch
 import imageio
 import numpy as np
 import cv2
-from utils import config_parser, load_img, show_img, find_ipoints, img2mse
+from utils import config_parser, load_blender, show_img, find_POI, img2mse, load_llff_data
 from nerf_helpers import load_nerf
 from render_helpers import render, to8b, get_rays
 from inerf_helpers import camera_transf
@@ -25,35 +25,48 @@ def run():
     batch_size = args.batch_size
     kernel_size = args.kernel_size
     lrate = args.lrate
+    dataset_type = args.dataset_type
 
     # Load and pre-process the observed image
     # obs_img - rgb image with elements in range 0...255
-    obs_img, hwf, start_pose, end_pose = load_img(args.obs_imgs_dir, obs_img_num,
-                                                  start_pose_num, args.half_res, args.white_bkgd)
-    start_pose = torch.Tensor(start_pose).to(device)
+    if dataset_type == 'blender':
+        obs_img, hwf, start_pose, obs_img_pose = load_blender(args.obs_imgs_dir, obs_img_num,
+                                                    start_pose_num, args.half_res, args.white_bkgd)
+        H, W, focal = hwf
+        near, far = 2., 6.  # Blender
+    else:
+        obs_img, hwf, start_pose, obs_img_pose, bds = load_llff_data(args.obs_imgs_dir, obs_img_num, start_pose_num, factor=8, recenter=True, bd_factor=.75, spherify=False)
+        H, W, focal = hwf
+        H, W = int(H), int(W)
+        if args.no_ndc:
+            near = np.ndarray.min(bds) * .9
+            far = np.ndarray.max(bds) * 1.
+        else:
+            near = 0.
+            far = 1.
 
+    start_pose = torch.Tensor(start_pose).to(device)
     if DEBUG:
         show_img("Observed image", obs_img)
 
     # Find points of interest
-    interest_pts_coords = find_ipoints(obs_img, DEBUG)  # xy pixel coordinates of interest points (N x 2)
+    POI = find_POI(obs_img, DEBUG)  # xy pixel coordinates of interest points (N x 2)
+    # Filter out the points that do not fit sample region
+    POI = [point for point in POI if ((((point[0]-kernel_size) >= 0) and ((point[1]-kernel_size) >= 0 )) and (((point[0]+kernel_size) <= (H-1)) and ((point[1]+kernel_size) <= (W-1))))]
+    POI = np.array(POI).astype(int)
 
     # Dilate the observed image
     I = args.dil_iter
     dil_obs_img = cv2.dilate(obs_img, np.ones((kernel_size, kernel_size), np.uint8), iterations=I)
     if DEBUG:
         show_img("Dilated image", dil_obs_img)
-        print(start_pose)
-        print(end_pose)
-        return
+
     dil_obs_img = (np.array(dil_obs_img) / 255.).astype(np.float32)
 
-    H, W, focal = hwf
     region_size = kernel_size ** 2
     num_regions = int(batch_size / region_size)
 
     # Load NeRF Model
-    near, far = 2., 6.  # Blender
     render_kwargs = load_nerf(args, device)
     bds_dict = {
         'near': near,
@@ -68,18 +81,16 @@ def run():
     testsavedir = os.path.join(output_dir, model_name)
     os.makedirs(testsavedir, exist_ok=True)
 
-    for k in range(600):
+
+    for k in range(300):
 
         batch = np.zeros((num_regions, kernel_size, kernel_size, 2), dtype=np.int)
-        rand_inds = np.random.choice(interest_pts_coords.shape[0], size=[num_regions], replace=False)  # (N_rand,)
-        rand_coords = interest_pts_coords[rand_inds]
+        rand_inds = np.random.choice(POI.shape[0], size=[num_regions], replace=False)  # (N_rand,)
+        rand_coords = POI[rand_inds]
         step = int(kernel_size / 2)
-        coords = np.asarray(np.stack(np.meshgrid(np.linspace(0, H - 1, H), np.linspace(0, W - 1, W)), -1),
+        coords = np.asarray(np.stack(np.meshgrid(np.linspace(0, W - 1, W), np.linspace(0, H - 1, H)), -1),
                             dtype=np.int)  # (H, W, 2)
         for i in range(len(rand_coords)):
-            if ((rand_coords[i][0] - step) < 0) or ((rand_coords[i][0] + step + 1) > H) or (
-                    (rand_coords[i][1] - step) < 0) or ((rand_coords[i][1] + step + 1) > W):
-                continue
             batch[i] = coords[rand_coords[i][0] - step: rand_coords[i][0] + step + 1,
                        rand_coords[i][1] - step: rand_coords[i][1] + step + 1]
         batch = batch.reshape((batch.shape[0] * region_size, 2))  # (num_regions * region_size, 2)
@@ -87,6 +98,7 @@ def run():
         target_s = torch.Tensor(target_s).to(device)
 
         pose = cam_transf(start_pose)
+
         rays_o, rays_d = get_rays(H, W, focal, pose)  # (H, W, 3), (H, W, 3)
         rays_o = rays_o[batch[:, 0], batch[:, 1]]  # (N_rand, 3)
         rays_d = rays_d[batch[:, 0], batch[:, 1]]
@@ -105,54 +117,65 @@ def run():
         for param_group in optimizer.param_groups:
             param_group['lr'] = new_lrate
 
-        if (k + 1) % 30 == 0:
+        if (k + 1) % 10 == 0:
             print(pose)
             print(loss)
+            with torch.no_grad():
+                rgb, disp, acc, _ = render(H, W, focal, chunk=args.chunk, c2w=pose[:3, :4], **render_kwargs)
+                rgb = rgb.cpu().detach().numpy()
+                rgb8 = to8b(rgb)
+                filename = os.path.join(testsavedir, str(k)+'.png')
+                imageio.imwrite(filename, rgb8)
+
 
 
 def run2():
+    # Parameters
     parser = config_parser()
     args = parser.parse_args()
+    output_dir = args.output_dir
     model_name = args.model_name
+    obs_img_num = args.obs_img_num
+    start_pose_num = args.start_pose_num
+    batch_size = args.batch_size
+    kernel_size = args.kernel_size
+    lrate = args.lrate
+    dataset_type = args.dataset_type
 
-    near, far = 2., 6.
+    # Load and pre-process the observed image
+    # obs_img - rgb image with elements in range 0...255
+    if dataset_type == 'blender':
+        obs_img, hwf, start_pose, obs_img_pose = load_blender(args.obs_imgs_dir, obs_img_num,
+                                                              start_pose_num, args.half_res, args.white_bkgd)
+        H, W, focal = hwf
+        near, far = 2., 6.  # Blender
+    else:
+        obs_img, hwf, start_pose, obs_img_pose, bds = load_llff_data(args.obs_imgs_dir, obs_img_num, start_pose_num,
+                                                                     factor=8, recenter=True, bd_factor=.75,
+                                                                     spherify=False)
+        H, W, focal = hwf
+        H, W = int(H), int(W)
+        if args.no_ndc:
+            near = np.ndarray.min(bds) * .9
+            far = np.ndarray.max(bds) * 1.
+        else:
+            near = 0.
+            far = 1.
+
+    pose1 = torch.Tensor([[ 0.9968,  0.0270, -0.0748, -0.1488],
+        [-0.0307,  0.9983, -0.0489, -0.1686],
+        [ 0.0734,  0.0511,  0.9960, -0.0154],
+        [ 0.0000,  0.0000,  0.0000,  1.0000]])
+
+
     render_kwargs = load_nerf(args, device)
     bds_dict = {
         'near': near,
         'far': far,
     }
-    pose = torch.Tensor([
-                [
-                    -0.9997775554656982,
-                    0.016899261623620987,
-                    -0.012622464448213577,
-                    -0.05088278651237488
-                ],
-                [
-                    -0.02109292894601822,
-                    -0.801003098487854,
-                    0.5982884764671326,
-                    2.411778211593628
-                ],
-                [
-                    9.313225746154785e-10,
-                    0.5984216928482056,
-                    0.8011811971664429,
-                    3.2296650409698486
-                ],
-                [
-                    0.0,
-                    0.0,
-                    0.0,
-                    1.0
-                ]
-            ])
     render_kwargs.update(bds_dict)
-    H, W = 400, 400
-    camera_angle_x = 0.6911112070083618
-    focal = .5 * W / np.tan(.5 * camera_angle_x)
-    print('RENDER ONLY')
-    rgb, disp, acc, _ = render(H, W, focal, chunk=args.chunk, c2w=pose[:3, :4], **render_kwargs)
+
+    rgb, disp, acc, _ = render(H, W, focal, chunk=args.chunk, c2w=pose1[:3, :4], **render_kwargs)
     testsavedir = os.path.join(args.output_dir, model_name)
     os.makedirs(testsavedir, exist_ok=True)
     rgb = rgb.cpu().numpy()
@@ -160,8 +183,41 @@ def run2():
     filename = os.path.join(testsavedir, '0.png')
     imageio.imwrite(filename, rgb8)
 
+def overlay():
+    parser = config_parser()
+    args = parser.parse_args()
+    output_dir = args.output_dir
+    model_name = args.model_name
+    obs_img_num = args.obs_img_num
+
+    testsavedir = os.path.join(args.output_dir, model_name)
+    imgs = []
+    for i in range(0, 280, 10):
+        if i == 0:
+            img = cv2.imread(testsavedir + '/img_' + str(i) + '.png')
+        else:
+            img = cv2.imread(testsavedir + '/img_' + str(i-1) + '.png')
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        imgs.append(img)
+    imageio.mimwrite(os.path.join(testsavedir, 'video.mp4'), imgs, fps=8, quality=8)
+    """
+    ref = cv2.imread(testsavedir + '/ref.png')
+
+    for i in range(0, 300, 10):
+        if i == 0:
+            img = cv2.imread(testsavedir + '/' + str(i) + '.png')
+            dst = cv2.addWeighted(img, 0.8, ref, 0.2, 0)
+            cv2.imwrite(testsavedir + '/img_' + str(i) + '.png', dst)
+        else:
+            img = cv2.imread(testsavedir + '/' + str(i-1) + '.png')
+            dst = cv2.addWeighted(img, 0.8, ref, 0.2, 0)
+            cv2.imwrite(testsavedir + '/img_' + str(i-1) + '.png', dst)
+    """
+
 DEBUG = False
 
 if __name__=='__main__':
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
+    #overlay()
     run()
+
