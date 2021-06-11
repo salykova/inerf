@@ -128,61 +128,6 @@ def run():
                 imageio.imwrite(filename, rgb8)
 
 
-
-def run2():
-    # Parameters
-    parser = config_parser()
-    args = parser.parse_args()
-    output_dir = args.output_dir
-    model_name = args.model_name
-    obs_img_num = args.obs_img_num
-    start_pose_num = args.start_pose_num
-    batch_size = args.batch_size
-    kernel_size = args.kernel_size
-    lrate = args.lrate
-    dataset_type = args.dataset_type
-
-    # Load and pre-process the observed image
-    # obs_img - rgb image with elements in range 0...255
-    if dataset_type == 'blender':
-        obs_img, hwf, start_pose, obs_img_pose = load_blender(args.obs_imgs_dir, obs_img_num,
-                                                              start_pose_num, args.half_res, args.white_bkgd)
-        H, W, focal = hwf
-        near, far = 2., 6.  # Blender
-    else:
-        obs_img, hwf, start_pose, obs_img_pose, bds = load_llff_data(args.obs_imgs_dir, obs_img_num, start_pose_num,
-                                                                     factor=8, recenter=True, bd_factor=.75,
-                                                                     spherify=False)
-        H, W, focal = hwf
-        H, W = int(H), int(W)
-        if args.no_ndc:
-            near = np.ndarray.min(bds) * .9
-            far = np.ndarray.max(bds) * 1.
-        else:
-            near = 0.
-            far = 1.
-
-    pose1 = torch.Tensor([[ 0.9968,  0.0270, -0.0748, -0.1488],
-        [-0.0307,  0.9983, -0.0489, -0.1686],
-        [ 0.0734,  0.0511,  0.9960, -0.0154],
-        [ 0.0000,  0.0000,  0.0000,  1.0000]])
-
-
-    render_kwargs = load_nerf(args, device)
-    bds_dict = {
-        'near': near,
-        'far': far,
-    }
-    render_kwargs.update(bds_dict)
-
-    rgb, disp, acc, _ = render(H, W, focal, chunk=args.chunk, c2w=pose1[:3, :4], **render_kwargs)
-    testsavedir = os.path.join(args.output_dir, model_name)
-    os.makedirs(testsavedir, exist_ok=True)
-    rgb = rgb.cpu().numpy()
-    rgb8 = to8b(rgb)
-    filename = os.path.join(testsavedir, '0.png')
-    imageio.imwrite(filename, rgb8)
-
 def overlay():
     parser = config_parser()
     args = parser.parse_args()
