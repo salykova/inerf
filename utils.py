@@ -64,7 +64,7 @@ def config_parser():
     parser.add_argument("--dataset_type", type=str, default='llff',
                         help='options: llff / blender / deepvoxels')
 
-    # blender flags
+    # blender options
     parser.add_argument("--white_bkgd", action='store_true',
                         help='set to render synthetic data on a white bkgd (always use for dvoxels)')
     parser.add_argument("--half_res", action='store_true',
@@ -72,7 +72,7 @@ def config_parser():
     parser.add_argument("--lindisp", action='store_true',
                         help='sampling linearly in disparity rather than depth')
 
-    # llff flags
+    # llff options
     parser.add_argument("--llffhold", type=int, default=8,
                         help='will take every 1/N images as LLFF test set, paper uses 8')
     parser.add_argument("--factor", type=int, default=8,
@@ -93,7 +93,8 @@ def config_parser():
                         help='Number of sampled rays per gradient step')
     parser.add_argument("--lrate", type=float, default=0.01,
                         help='Initial learning rate')
-
+    parser.add_argument("--sampling_strategy", type=str, default='random',
+                        help='options: random / interest_point / interest_region')
     """
     # llff flags
     parser.add_argument("--factor", type=int, default=8,
@@ -162,6 +163,9 @@ def find_POI(img_rgb, DEBUG=False): # img - RGB image in range 0...255
         show_img("Detected points", img)
     xy = [keypoint.pt for keypoint in keypoints]
     xy = np.array(xy).astype(int)
+    # Remove duplicate points
+    xy_set = set(tuple(point) for point in xy)
+    xy = np.array([list(point) for point in xy_set]).astype(int)
     return xy # pixel coordinates
 
 # Misc
