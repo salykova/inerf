@@ -9,9 +9,9 @@ Implementation of iNeRF project using PyTorch
 
 ## Different sampling strategies 
 
-![](https://user-images.githubusercontent.com/63703454/122686046-843f1080-d20f-11eb-975e-18ff257ccb64.gif)
-![](https://user-images.githubusercontent.com/63703454/122686095-c2d4cb00-d20f-11eb-9502-47a52c7e6a8d.gif)
-![](https://user-images.githubusercontent.com/63703454/122686099-c5cfbb80-d20f-11eb-89b0-2f91182a9b08.gif)
+![](https://user-images.githubusercontent.com/63703454/122686222-51e1e300-d210-11eb-8f4c-be25f078ffa9.gif)
+![](https://user-images.githubusercontent.com/63703454/122686229-58705a80-d210-11eb-9c0f-d6c2208b5457.gif)
+![](https://user-images.githubusercontent.com/63703454/122686235-5ad2b480-d210-11eb-87ec-d645ae07b8d7.gif)
 
 Left - **random**, in the middle - **interest points**, right - **interest regions**. 
 Interest regions sampling strategy provides faster convergence and doesnt stuck in a local minimum like interest points. 
