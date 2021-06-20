@@ -1,19 +1,21 @@
-expname = blender_paper_chair
-basedir = ./logs
-datadir = ./data/nerf_synthetic/chair
+model_name = chair
+output_dir = ./output
+data_dir = ./data/nerf_synthetic/chair
 dataset_type = blender
-
-no_batching = True
+obs_imgs_dir = ./data/nerf_synthetic/chair/obs_imgs
+ckpt_dir = ./ckpts
+ckpt_name = chair
 
 use_viewdirs = True
 white_bkgd = True
-lrate_decay = 500
-
 N_samples = 64
-N_importance = 128
-N_rand = 1024
-
-precrop_iters = 500
-precrop_frac = 0.5
-
+N_importance = 64
 half_res = True
+
+obs_img_num = 87
+dil_iter = 3
+kernel_size = 5
+start_pose_num = 22
+batch_size = 2048
+lrate = 0.01
+sampling_strategy = interest_regions

@@ -14,11 +14,13 @@ N_importance = 64
 raw_noise_std = 1e0
 
 obs_img_num = 2
-dil_iter = 1
-kernel_size = 3
-start_pose_num = 0
+dil_iter = 3
+kernel_size = 5
 batch_size = 2048
 lrate = 0.01
 sampling_strategy = interest_points
 
-
+phi_angle = 20.
+theta_angle = 0.
+psi_angle = 0.
+translation = 0.

@@ -16,9 +16,9 @@ raw_noise_std = 1e0
 obs_img_num = 12
 dil_iter = 2
 kernel_size = 5
-start_pose_num = 37
+start_pose_num = 16
 batch_size = 2048
 lrate = 0.01
-sampling_strategy = interest_regions
+sampling_strategy = random
 
 

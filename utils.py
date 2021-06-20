@@ -87,14 +87,26 @@ def config_parser():
                         help='Number of iterations of dilation process')
     parser.add_argument("--kernel_size", type=int, default=3,
                         help='Kernel size for dilation')
-    parser.add_argument("--start_pose_num", type=int, default=1,
-                        help='Number of image, which pose will be used as initial pose')
     parser.add_argument("--batch_size", type=int, default=2048,
                         help='Number of sampled rays per gradient step')
     parser.add_argument("--lrate", type=float, default=0.01,
                         help='Initial learning rate')
     parser.add_argument("--sampling_strategy", type=str, default='random',
                         help='options: random / interest_point / interest_region')
+
+    parser.add_argument("--start_pose_num", type=int, default=None,
+                        help='Number of image, which pose will be used as initial pose')
+    # Alternatively, we can take the pose of the observed image, change the pose with following transformations and
+    # use it as initial pose (start_pose)
+    parser.add_argument("--psi_angle", type=float, default=0.0,
+                        help='Rotate the camera around x axis')
+    parser.add_argument("--phi_angle", type=float, default=0.0,
+                        help='Rotate the camera around z axis')
+    parser.add_argument("--theta_angle", type=float, default=0.0,
+                        help='Rotate the camera around y axis')
+    parser.add_argument("--translation", type=float, default=0.0,
+                        help='translation of the camera (negative = zoom in)')
+
     """
     # llff flags
     parser.add_argument("--factor", type=int, default=8,
@@ -110,14 +122,37 @@ def config_parser():
     """
     return parser
 
+rot_psi = lambda phi: np.array([
+        [1, 0, 0, 0],
+        [0, np.cos(phi), -np.sin(phi), 0],
+        [0, np.sin(phi), np.cos(phi), 0],
+        [0, 0, 0, 1]])
 
-def load_blender(data_dir, img_num, start_pose_num, half_res, white_bkgd):
+rot_theta = lambda th: np.array([
+        [np.cos(th), 0, -np.sin(th), 0],
+        [0, 1, 0, 0],
+        [np.sin(th), 0, np.cos(th), 0],
+        [0, 0, 0, 1]])
+
+rot_phi = lambda psi: np.array([
+        [np.cos(psi), -np.sin(psi), 0, 0],
+        [np.sin(psi), np.cos(psi), 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]])
+
+trans_t = lambda t: np.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, t],
+        [0, 0, 0, 1]])
+
+def load_blender(data_dir, obs_img_num, start_pose_num, half_res, white_bkgd, *kwargs):
 
     with open(os.path.join(data_dir, 'transforms.json'), 'r') as fp:
         meta = json.load(fp)
     frames = meta['frames']
 
-    img_path =  os.path.join(data_dir, frames[img_num]['file_path'] + '.png')
+    img_path =  os.path.join(data_dir, frames[obs_img_num]['file_path'] + '.png')
     img_rgba = imageio.imread(img_path)
     img_rgba = (np.array(img_rgba) / 255.).astype(np.float32) # rgba image of type float32
     H, W = img_rgba.shape[:2]
@@ -135,10 +170,13 @@ def load_blender(data_dir, img_num, start_pose_num, half_res, white_bkgd):
         img_rgb = cv2.resize(img_rgb, (W, H), interpolation=cv2.INTER_AREA)
 
     img_rgb = np.asarray(img_rgb*255, dtype=np.uint8)
-    start_pose = np.array(frames[start_pose_num]['transform_matrix']).astype(np.float32)
-    end_pose = np.array(frames[img_num]['transform_matrix']).astype(np.float32)
-
-    return img_rgb, [H, W, focal], start_pose, end_pose # image of type uint8
+    obs_img_pose = np.array(frames[obs_img_num]['transform_matrix']).astype(np.float32)
+    phi, theta, psi, t = kwargs
+    if start_pose_num is None:
+        start_pose = rot_phi(phi/180.*np.pi) @ rot_theta(theta/180.*np.pi) @ rot_psi(psi/180.*np.pi) @ trans_t(t) @ obs_img_pose
+    else:
+        start_pose = np.array(frames[start_pose_num]['transform_matrix']).astype(np.float32)
+    return img_rgb, [H, W, focal], start_pose, obs_img_pose # image of type uint8
 
 
 def rgb2bgr(img_rgb):
@@ -375,7 +413,7 @@ def spherify_poses(poses, bds):
     return poses_reset, bds
 
 
-def load_llff_data(basedir, obs_img_num, start_pose_num, factor=8, recenter=True, bd_factor=.75, spherify=False):
+def load_llff_data(basedir, obs_img_num, start_pose_num, *kwargs, factor=8, recenter=True, bd_factor=.75, spherify=False):
     poses, bds, imgs = _load_data(basedir, factor=factor)  # factor=8 downsamples original imgs by 8x
     print('Loaded', basedir, bds.min(), bds.max())
 
@@ -403,5 +441,9 @@ def load_llff_data(basedir, obs_img_num, start_pose_num, factor=8, recenter=True
     poses = poses[:,:3,:4]
     obs_img = images[obs_img_num]
     obs_img_pose = np.concatenate((poses[obs_img_num], np.array([[0,0,0,1.]])), axis=0)
-    start_pose = np.concatenate((poses[start_pose_num], np.array([[0,0,0,1.]])), axis=0)
+    phi, theta, psi, t = kwargs
+    if start_pose_num is None:
+        start_pose = rot_phi(phi/180.*np.pi) @ rot_theta(theta/180.*np.pi) @ rot_psi(psi/180.*np.pi) @ trans_t(t) @ obs_img_pose
+    else:
+        start_pose = np.concatenate((poses[start_pose_num], np.array([[0,0,0,1.]])), axis=0)
     return obs_img, hwf, start_pose, obs_img_pose, bds

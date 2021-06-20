@@ -27,16 +27,18 @@ def run():
     lrate = args.lrate
     dataset_type = args.dataset_type
     sampling_strategy = args.sampling_strategy
+    phi, theta, psi, t = args.phi_angle, args.theta_angle, args.psi_angle, args.translation
 
     # Load and pre-process the observed image
     # obs_img - rgb image with elements in range 0...255
     if dataset_type == 'blender':
         obs_img, hwf, start_pose, obs_img_pose = load_blender(args.obs_imgs_dir, obs_img_num,
-                                                    start_pose_num, args.half_res, args.white_bkgd)
+                                                start_pose_num, args.half_res, args.white_bkgd, phi, theta, psi, t)
         H, W, focal = hwf
         near, far = 2., 6.  # Blender
     else:
-        obs_img, hwf, start_pose, obs_img_pose, bds = load_llff_data(args.obs_imgs_dir, obs_img_num, start_pose_num, factor=8, recenter=True, bd_factor=.75, spherify=False)
+        obs_img, hwf, start_pose, obs_img_pose, bds = load_llff_data(args.obs_imgs_dir, obs_img_num, start_pose_num,
+                                                phi, theta, psi, t, factor=8, recenter=True, bd_factor=.75, spherify=False)
         H, W, focal = hwf
         H, W = int(H), int(W)
         if args.no_ndc:
@@ -88,7 +90,7 @@ def run():
     os.makedirs(testsavedir, exist_ok=True)
     # imgs - array with images are used to create the video of optimization process
     imgs = []
-    for k in range(900):
+    for k in range(300):
 
         if sampling_strategy == 'random':
             rand_inds = np.random.choice(coords.shape[0], size=batch_size, replace=False)
@@ -134,7 +136,7 @@ def run():
         for param_group in optimizer.param_groups:
             param_group['lr'] = new_lrate
 
-        if (k + 1) % 30 == 0:
+        if (k + 1) % 10 == 0 or k == 0:
             print(pose)
             print(loss)
             with torch.no_grad():
@@ -149,10 +151,8 @@ def run():
 
     imageio.mimwrite(os.path.join(testsavedir, 'video.gif'), imgs, fps=8) #quality = 8 for mp4 format
 
-
 DEBUG = False
 
 if __name__=='__main__':
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
     run()
-
