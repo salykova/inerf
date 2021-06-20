@@ -8,13 +8,13 @@ ckpt_name = lego
 
 use_viewdirs = True
 white_bkgd = True
-N_samples = 50
-N_importance = 80
+N_samples = 64
+N_importance = 64
 half_res = True
 
 obs_img_num = 15
 dil_iter = 1
-kernel_size = 5
+kernel_size = 3
 start_pose_num = 27
 batch_size = 2048
 lrate = 0.01
