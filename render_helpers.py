@@ -5,7 +5,7 @@ import time
 import imageio
 import numpy as np
 import torch.nn.functional as F
-from torchsearchsorted import searchsorted
+#from torchsearchsorted import searchsorted
 from utils import to8b
 DEBUG = False
 
@@ -82,7 +82,7 @@ def sample_pdf(bins, weights, N_samples, det=False, pytest=False):
 
     # Invert CDF
     u = u.contiguous()
-    inds = searchsorted(cdf, u, side='right')
+    inds = torch.searchsorted(cdf, u, right=True)
     below = torch.max(torch.zeros_like(inds - 1), inds - 1)
     above = torch.min((cdf.shape[-1] - 1) * torch.ones_like(inds), inds)
     inds_g = torch.stack([below, above], -1)  # (batch, N_samples, 2)

@@ -18,9 +18,14 @@ dil_iter = 3
 kernel_size = 5
 batch_size = 2048
 lrate = 0.01
-sampling_strategy = interest_points
 
-phi_angle = 20.
-theta_angle = 0.
-psi_angle = 0.
-translation = 0.
+sampling_strategy = interest_regions
+
+delta_phi = 0.
+delta_theta = 10.
+delta_psi = 0.
+delta_t = 0.
+
+noise = None
+sigma = 0.0
+amount = 0.8

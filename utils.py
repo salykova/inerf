@@ -69,8 +69,6 @@ def config_parser():
                         help='set to render synthetic data on a white bkgd (always use for dvoxels)')
     parser.add_argument("--half_res", action='store_true',
                         help='load blender synthetic data at 400x400 instead of 800x800')
-    parser.add_argument("--lindisp", action='store_true',
-                        help='sampling linearly in disparity rather than depth')
 
     # llff options
     parser.add_argument("--llffhold", type=int, default=8,
@@ -79,6 +77,10 @@ def config_parser():
                         help='downsample factor for LLFF images')
     parser.add_argument("--no_ndc", action='store_true',
                         help='do not use normalized device coordinates (set for non-forward facing scenes)')
+    parser.add_argument("--lindisp", action='store_true',
+                        help='sampling linearly in disparity rather than depth')
+    parser.add_argument("--spherify", action='store_true',
+                        help='set for spherical 360 scenes')
 
     # iNeRF options
     parser.add_argument("--obs_img_num", type=int, default=0,
@@ -93,20 +95,24 @@ def config_parser():
                         help='Initial learning rate')
     parser.add_argument("--sampling_strategy", type=str, default='random',
                         help='options: random / interest_point / interest_region')
-
-    parser.add_argument("--start_pose_num", type=int, default=None,
-                        help='Number of image, which pose will be used as initial pose')
-    # Alternatively, we can take the pose of the observed image, change the pose with following transformations and
-    # use it as initial pose (start_pose)
-    parser.add_argument("--psi_angle", type=float, default=0.0,
-                        help='Rotate the camera around x axis')
-    parser.add_argument("--phi_angle", type=float, default=0.0,
-                        help='Rotate the camera around z axis')
-    parser.add_argument("--theta_angle", type=float, default=0.0,
-                        help='Rotate the camera around y axis')
-    parser.add_argument("--translation", type=float, default=0.0,
-                        help='translation of the camera (negative = zoom in)')
-
+    #  parameters to define initial pose
+    parser.add_argument("--delta_psi", type=float, default=0.0,
+                        help='Rotate camera around x axis')
+    parser.add_argument("--delta_phi", type=float, default=0.0,
+                        help='Rotate camera around z axis')
+    parser.add_argument("--delta_theta", type=float, default=0.0,
+                        help='Rotate camera around y axis')
+    parser.add_argument("--delta_t", type=float, default=0.0,
+                        help='translation of camera (negative = zoom in)')
+    # apply noise to observed image
+    parser.add_argument("--noise", type=str, default='None',
+                        help='options: gauss / salt / pepper / sp / poisson')
+    parser.add_argument("--sigma", type=float, default=0.01,
+                        help='var = sigma^2 of applied noise (variance = std)')
+    parser.add_argument("--amount", type=float, default=0.05,
+                        help='proportion of image pixels to replace with noise (used in ‘salt’, ‘pepper’, and ‘s&p)')
+    parser.add_argument("--delta_brightness", type=float, default=0.0,
+                        help='reduce/increase brightness of the observed image, value is in [-1...1]')
     """
     # llff flags
     parser.add_argument("--factor", type=int, default=8,
@@ -146,7 +152,7 @@ trans_t = lambda t: np.array([
         [0, 0, 1, t],
         [0, 0, 0, 1]])
 
-def load_blender(data_dir, obs_img_num, start_pose_num, half_res, white_bkgd, *kwargs):
+def load_blender(data_dir, obs_img_num, half_res, white_bkgd, *kwargs):
 
     with open(os.path.join(data_dir, 'transforms.json'), 'r') as fp:
         meta = json.load(fp)
@@ -172,10 +178,7 @@ def load_blender(data_dir, obs_img_num, start_pose_num, half_res, white_bkgd, *k
     img_rgb = np.asarray(img_rgb*255, dtype=np.uint8)
     obs_img_pose = np.array(frames[obs_img_num]['transform_matrix']).astype(np.float32)
     phi, theta, psi, t = kwargs
-    if start_pose_num is None:
-        start_pose = rot_phi(phi/180.*np.pi) @ rot_theta(theta/180.*np.pi) @ rot_psi(psi/180.*np.pi) @ trans_t(t) @ obs_img_pose
-    else:
-        start_pose = np.array(frames[start_pose_num]['transform_matrix']).astype(np.float32)
+    start_pose =  trans_t(t) @ rot_phi(phi/180.*np.pi) @ rot_theta(theta/180.*np.pi) @ rot_psi(psi/180.*np.pi)  @ obs_img_pose
     return img_rgb, [H, W, focal], start_pose, obs_img_pose # image of type uint8
 
 
@@ -413,7 +416,7 @@ def spherify_poses(poses, bds):
     return poses_reset, bds
 
 
-def load_llff_data(basedir, obs_img_num, start_pose_num, *kwargs, factor=8, recenter=True, bd_factor=.75, spherify=False):
+def load_llff_data(basedir, obs_img_num, *kwargs, factor=8, recenter=True, bd_factor=.75, spherify=False):
     poses, bds, imgs = _load_data(basedir, factor=factor)  # factor=8 downsamples original imgs by 8x
     print('Loaded', basedir, bds.min(), bds.max())
 
@@ -442,8 +445,5 @@ def load_llff_data(basedir, obs_img_num, start_pose_num, *kwargs, factor=8, rece
     obs_img = images[obs_img_num]
     obs_img_pose = np.concatenate((poses[obs_img_num], np.array([[0,0,0,1.]])), axis=0)
     phi, theta, psi, t = kwargs
-    if start_pose_num is None:
-        start_pose = rot_phi(phi/180.*np.pi) @ rot_theta(theta/180.*np.pi) @ rot_psi(psi/180.*np.pi) @ trans_t(t) @ obs_img_pose
-    else:
-        start_pose = np.concatenate((poses[start_pose_num], np.array([[0,0,0,1.]])), axis=0)
+    start_pose = rot_phi(phi/180.*np.pi) @ rot_theta(theta/180.*np.pi) @ rot_psi(psi/180.*np.pi) @ trans_t(t) @ obs_img_pose
     return obs_img, hwf, start_pose, obs_img_pose, bds

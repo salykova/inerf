@@ -1,15 +1,31 @@
-expname = horns_test
-basedir = ./logs
-datadir = ./data/nerf_llff_data/horns
+output_dir = ./output
+obs_imgs_dir = ./data/nerf_llff_data/horns
+ckpt_dir = ./ckpts
+
+ckpt_name = horns
+model_name = horns
 dataset_type = llff
 
 factor = 8
 llffhold = 8
-
-N_rand = 1024
+use_viewdirs = True
 N_samples = 64
 N_importance = 64
-
-use_viewdirs = True
 raw_noise_std = 1e0
 
+obs_img_num = 7
+dil_iter = 3
+kernel_size = 5
+batch_size = 2048
+lrate = 0.01
+
+sampling_strategy = random
+
+delta_phi = 0.
+delta_theta = 10.
+delta_psi = 0.
+delta_t = 0.1
+
+noise = gaussian
+sigma = 0.0
+amount = 0.8

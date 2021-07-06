@@ -13,9 +13,19 @@ N_importance = 64
 half_res = True
 
 obs_img_num = 15
-dil_iter = 1
-kernel_size = 3
-start_pose_num = 27
+dil_iter = 3
+kernel_size = 5
 batch_size = 2048
 lrate = 0.01
-sampling_strategy = interest_regions
+
+sampling_strategy = interest_points
+
+delta_phi = 10.
+delta_theta = 0.
+delta_psi = 0.
+delta_t = 0.
+
+noise = None
+sigma = 0.01
+amount = 0.8
+delta_brightness = 0.
