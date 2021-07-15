@@ -33,12 +33,12 @@ def run():
     # Load and pre-process the observed image
     # obs_img - rgb image with elements in range 0...255
     if dataset_type == 'blender':
-        obs_img, hwf, start_pose, obs_img_pose = load_blender(args.obs_imgs_dir, obs_img_num,
+        obs_img, hwf, start_pose, obs_img_pose = load_blender(args.data_dir, model_name, obs_img_num,
                                                 args.half_res, args.white_bkgd, delta_phi, delta_theta, delta_psi, delta_t)
         H, W, focal = hwf
         near, far = 2., 6.  # Blender
     else:
-        obs_img, hwf, start_pose, obs_img_pose, bds = load_llff_data(args.obs_imgs_dir, obs_img_num, delta_phi,
+        obs_img, hwf, start_pose, obs_img_pose, bds = load_llff_data(args.data_dir, model_name, obs_img_num, delta_phi,
                                                 delta_theta, delta_psi, delta_t, factor=8, recenter=True, bd_factor=.75, spherify=spherify)
         H, W, focal = hwf
         H, W = int(H), int(W)
@@ -89,7 +89,7 @@ def run():
 
     # create meshgrid from the observed image
     coords = np.asarray(np.stack(np.meshgrid(np.linspace(0, W - 1, W), np.linspace(0, H - 1, H)), -1),
-                        dtype=np.int)
+                        dtype=int)
 
     # create sampling mask for interest region sampling strategy
     interest_regions = np.zeros((H, W, ), dtype=np.uint8)
@@ -131,7 +131,7 @@ def run():
     if OVERLAY is True:
         imgs = []
 
-    for k in range(800):
+    for k in range(300):
 
         if sampling_strategy == 'random':
             rand_inds = np.random.choice(coords.shape[0], size=batch_size, replace=False)
@@ -213,7 +213,7 @@ def run():
     if OVERLAY is True:
         imageio.mimwrite(os.path.join(testsavedir, 'video.gif'), imgs, fps=8) #quality = 8 for mp4 format
 
-DEBUG = True
+DEBUG = False
 OVERLAY = False
 
 if __name__=='__main__':
