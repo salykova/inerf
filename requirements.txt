@@ -7,3 +7,5 @@ configargparse
 tensorboard==1.14.0
 tqdm
 opencv-python==4.2.0.34
+opencv-contrib-python
+scikit-image

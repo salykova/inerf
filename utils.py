@@ -11,20 +11,16 @@ def config_parser():
     import configargparse
     parser = configargparse.ArgumentParser()
 
-    parser.add_argument("--obs_imgs_dir", type=str, default='./data/nerf_synthetic/lego/obs_imgs',
-                        help='folder with observed images')
+    parser.add_argument("--data_dir", type=str, default='./data/nerf_synthetic/',
+                        help='path to folder with synthetic or llff data')
     parser.add_argument('--config', is_config_file=True,
                         help='config file path')
     parser.add_argument("--model_name", type=str,
                         help='name of the nerf model')
     parser.add_argument("--output_dir", type=str, default='./output/',
-                        help='where to store output images/poses')
-    parser.add_argument("--data_dir", type=str, default='./data/nerf_synthetic/lego',
-                        help='input data directory')
+                        help='where to store output images/videos')
     parser.add_argument("--ckpt_dir", type=str, default='./ckpts',
                         help='folder with saved checkpoints')
-    parser.add_argument("--ckpt_name", type=str, default='lego',
-                        help='File name of the checkpoint')
 
     # training options
     parser.add_argument("--netdepth", type=int, default=8,
@@ -95,7 +91,7 @@ def config_parser():
                         help='Initial learning rate')
     parser.add_argument("--sampling_strategy", type=str, default='random',
                         help='options: random / interest_point / interest_region')
-    #  parameters to define initial pose
+    # parameters to define initial pose
     parser.add_argument("--delta_psi", type=float, default=0.0,
                         help='Rotate camera around x axis')
     parser.add_argument("--delta_phi", type=float, default=0.0,
@@ -113,19 +109,7 @@ def config_parser():
                         help='proportion of image pixels to replace with noise (used in ‘salt’, ‘pepper’, and ‘s&p)')
     parser.add_argument("--delta_brightness", type=float, default=0.0,
                         help='reduce/increase brightness of the observed image, value is in [-1...1]')
-    """
-    # llff flags
-    parser.add_argument("--factor", type=int, default=8,
-                        help='downsample factor for LLFF images')
-    parser.add_argument("--no_ndc", action='store_true',
-                        help='do not use normalized device coordinates (set for non-forward facing scenes)')
-    parser.add_argument("--lindisp", action='store_true',
-                        help='sampling linearly in disparity rather than depth')
-    parser.add_argument("--spherify", action='store_true',
-                        help='set for spherical 360 scenes')
-    parser.add_argument("--llffhold", type=int, default=8,
-                        help='will take every 1/N images as LLFF test set, paper uses 8')
-    """
+
     return parser
 
 rot_psi = lambda phi: np.array([
@@ -152,13 +136,13 @@ trans_t = lambda t: np.array([
         [0, 0, 1, t],
         [0, 0, 0, 1]])
 
-def load_blender(data_dir, obs_img_num, half_res, white_bkgd, *kwargs):
+def load_blender(data_dir, model_name, obs_img_num, half_res, white_bkgd, *kwargs):
 
-    with open(os.path.join(data_dir, 'transforms.json'), 'r') as fp:
+    with open(os.path.join(data_dir + str(model_name) + "/obs_imgs/", 'transforms.json'), 'r') as fp:
         meta = json.load(fp)
     frames = meta['frames']
 
-    img_path =  os.path.join(data_dir, frames[obs_img_num]['file_path'] + '.png')
+    img_path =  os.path.join(data_dir + str(model_name) + "/obs_imgs/", frames[obs_img_num]['file_path'] + '.png')
     img_rgba = imageio.imread(img_path)
     img_rgba = (np.array(img_rgba) / 255.).astype(np.float32) # rgba image of type float32
     H, W = img_rgba.shape[:2]
@@ -416,9 +400,9 @@ def spherify_poses(poses, bds):
     return poses_reset, bds
 
 
-def load_llff_data(basedir, obs_img_num, *kwargs, factor=8, recenter=True, bd_factor=.75, spherify=False):
-    poses, bds, imgs = _load_data(basedir, factor=factor)  # factor=8 downsamples original imgs by 8x
-    print('Loaded', basedir, bds.min(), bds.max())
+def load_llff_data(data_dir, model_name, obs_img_num, *kwargs, factor=8, recenter=True, bd_factor=.75, spherify=False):
+    poses, bds, imgs = _load_data(data_dir + str(model_name) + "/", factor=factor)  # factor=8 downsamples original imgs by 8x
+    print('Loaded', data_dir + str(model_name) + "/", bds.min(), bds.max())
 
     # Correct rotation matrix ordering and move variable dim to axis 0
     poses = np.concatenate([poses[:, 1:2, :], -poses[:, 0:1, :], poses[:, 2:, :]], 1)

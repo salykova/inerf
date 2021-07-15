@@ -26,10 +26,9 @@ def load_nerf(args, device):
                                                                         embeddirs_fn=embeddirs_fn,
                                                                         netchunk=args.netchunk)
     # Load checkpoint
-    model_name = args.model_name
     ckpt_dir = args.ckpt_dir
-    ckpt_name = args.ckpt_name
-    ckpt_path = os.path.join(ckpt_dir, model_name, ckpt_name+'.tar')
+    ckpt_name = args.model_name
+    ckpt_path = os.path.join(ckpt_dir, ckpt_name+'.tar')
     print('Found ckpts', ckpt_path)
     print('Reloading from', ckpt_path)
     ckpt = torch.load(ckpt_path)
