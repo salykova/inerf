@@ -1,21 +1,25 @@
-model_name = chair
 output_dir = ./output
-dataset_type = blender
-data_dir = ./data/nerf_synthetic/
+data_dir = ./data/nerf_llff_data/
 ckpt_dir = ./ckpts
+model_name = pinecone
+dataset_type = llff
 
+factor = 8
+llffhold = 8
 use_viewdirs = True
-white_bkgd = True
 N_samples = 64
 N_importance = 64
-half_res = True
+raw_noise_std = 1e0
+spherify = True
+no_ndc = True
+lindisp = True
 
 obs_img_num = 2
 dil_iter = 3
 kernel_size = 5
 batch_size = 512
 lrate = 0.01
-sampling_strategy = random
+sampling_strategy = interest_regions
 
 delta_phi = 10.
 delta_theta = 0.
@@ -23,6 +27,11 @@ delta_psi = 0.
 delta_t = 0.
 
 noise = None
-sigma = 0.01
-amount = 0.8
+sigma = 0.0
+amount = 0.0
 delta_brightness = 0.
+
+
+
+
+
