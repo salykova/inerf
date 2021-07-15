@@ -1,7 +1,7 @@
 # iNeRF: Inverting Neural Radiance Fields (NeRF) for 6-DoF Pose Estimation 
 Unofficial implementation of [iNeRF](https://arxiv.org/abs/2012.05877) project using PyTorch. 
 
-# Installation
+## Installation
 To start, I recommend to create the environment using conda:
 ```
 conda create -n inerf python=3.8
@@ -13,7 +13,7 @@ git clone https://github.com/salykovaa/inerf.git
 cd inerf
 pip install -r requirements.txt
 ```
-# How to use
+## How to use
 To run the algorithm on _Lego_ object
 ```
 python run.py --config configs/lego.txt
@@ -45,7 +45,7 @@ To run the algorithm on the llff dataset, just download the "nerf_llff_data" fol
 Left - **random**, in the middle - **interest points**, right - **interest regions**. 
 Interest regions sampling strategy provides faster convergence and doesnt stuck in a local minimum like interest points. 
 
-# Citation
+## Citation
 ```
 @article{yen2020inerf,
   title={{iNeRF}: Inverting Neural Radiance Fields for Pose Estimation},
