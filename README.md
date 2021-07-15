@@ -1,10 +1,39 @@
-# iNeRF: Inverting Neural Radiance Fields for Pose Estimation 
-Implementation of iNeRF project using PyTorch
+# iNeRF: Inverting Neural Radiance Fields (NeRF) for 6-DoF Pose Estimation 
+Unofficial implementation of [iNeRF](https://arxiv.org/abs/2012.05877) project using PyTorch. 
 
-## Example results
+# Installation
+To start, I recommend to create the environment using conda:
+```
+conda create -n inerf python=3.8
+conda activate inerf
+```
+Clone the repository and install dependencies:
+```
+git clone https://github.com/salykovaa/inerf.git
+cd inerf
+pip install -r requirements.txt
+```
+# How to use
+To run the algorithm on _Lego_ object
+```
+python run.py --config configs/lego.txt
+```
+If you want to store a gif video of the optimization process, set ```OVERLAY = True``` [here](https://github.com/salykovaa/inerf/blob/a8c996958789168b93e73ed8aee8d6f76ceb0fbc/run.py#L217)
+
+All other parameters such as _batch size_, _sampling strategy_, _initial camera error_ you can adjust in corresponding config [files](https://github.com/salykovaa/inerf/tree/main/configs).
+
+To run the algorithm on the llff dataset, just download the "nerf_llff_data" folder from [here](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1) and put the downloaded folder in the "data" folder. 
+```
+├── data 
+│   ├── nerf_llff_data   
+│   ├── nerf_synthetic  
+```
+## Examples of results
 
 ![](https://user-images.githubusercontent.com/63703454/122670771-f5f16d00-d1c3-11eb-82a7-6446f1f05a95.gif)
 ![](https://user-images.githubusercontent.com/63703454/122670773-f7229a00-d1c3-11eb-99be-621e4547a768.gif)
+![](https://user-images.githubusercontent.com/63703454/125823439-4d89d5fa-4aa6-4159-9df4-4fcf55441632.gif)
+
 
 
 ## Different sampling strategies 
@@ -15,3 +44,22 @@ Implementation of iNeRF project using PyTorch
 
 Left - **random**, in the middle - **interest points**, right - **interest regions**. 
 Interest regions sampling strategy provides faster convergence and doesnt stuck in a local minimum like interest points. 
+
+# Citation
+```
+@article{yen2020inerf,
+  title={{iNeRF}: Inverting Neural Radiance Fields for Pose Estimation},
+  author={Lin Yen-Chen and Pete Florence and Jonathan T. Barron and Alberto Rodriguez and Phillip Isola and Tsung-Yi Lin},
+  year={2020},
+  journal={arxiv arXiv:2012.05877},
+}
+```
+Parts of the code were based on from yenchenlin's NeRF implementation: https://github.com/yenchenlin/nerf-pytorch
+```
+@misc{lin2020nerfpytorch,
+  title={NeRF-pytorch},
+  author={Yen-Chen, Lin},
+  howpublished={\url{https://github.com/yenchenlin/nerf-pytorch/}},
+  year={2020}
+}
+```
