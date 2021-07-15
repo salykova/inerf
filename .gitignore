@@ -20,6 +20,5 @@ ipython_config.py
 .idea/
 
 # Training data
-data/
 logs/
 tiny_nerf_data.npz
