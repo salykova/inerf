@@ -127,7 +127,7 @@ def run():
     testsavedir = os.path.join(output_dir, model_name)
     os.makedirs(testsavedir, exist_ok=True)
 
-    # imgs - array with images are used to create the video of optimization process
+    # imgs - array with images are used to create a video of optimization process
     if OVERLAY is True:
         imgs = []
 
