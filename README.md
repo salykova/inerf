@@ -2,7 +2,7 @@
 Unofficial implementation of [iNeRF](https://arxiv.org/abs/2012.05877) project using PyTorch. 
 
 ## Installation
-To start, I recommend to create the environment using conda:
+To start, I recommend to create an environment using conda:
 ```
 conda create -n inerf python=3.8
 conda activate inerf
