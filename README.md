@@ -30,11 +30,11 @@ To run the algorithm on the llff dataset, just download the "nerf_llff_data" fol
 ```
 ## Examples
 
+![](https://user-images.githubusercontent.com/63703454/125823439-4d89d5fa-4aa6-4159-9df4-4fcf55441632.gif)
+![](https://user-images.githubusercontent.com/63703454/126023953-682a28fe-2bb7-419a-98f8-da3a139a81bf.gif)
+
 ![](https://user-images.githubusercontent.com/63703454/122670771-f5f16d00-d1c3-11eb-82a7-6446f1f05a95.gif)
 ![](https://user-images.githubusercontent.com/63703454/122670773-f7229a00-d1c3-11eb-99be-621e4547a768.gif)
-![](https://user-images.githubusercontent.com/63703454/125823439-4d89d5fa-4aa6-4159-9df4-4fcf55441632.gif)
-
-
 
 ## Different sampling strategies 
 
