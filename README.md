@@ -1,4 +1,4 @@
-# iNeRF: Inverting Neural Radiance Fields (NeRF) for 6-DoF Pose Estimation 
+# iNeRF: Inverting Neural Radiance Fields for 6-DoF Pose Estimation 
 Unofficial implementation of [iNeRF](https://arxiv.org/abs/2012.05877) project using PyTorch. 
 
 ## Installation
