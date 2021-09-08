@@ -46,6 +46,7 @@ Left - **random**, in the middle - **interest points**, right - **interest regio
 Interest regions sampling strategy provides faster convergence and doesnt stuck in a local minimum like interest points. 
 
 ## Citation
+Kudos to the authors
 ```
 @article{yen2020inerf,
   title={{iNeRF}: Inverting Neural Radiance Fields for Pose Estimation},
