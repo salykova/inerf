@@ -1,6 +1,5 @@
 # iNeRF: Inverting Neural Radiance Fields for 6-DoF Pose Estimation 
-Unofficial implementation of [iNeRF](https://arxiv.org/abs/2012.05877) project using PyTorch. 
-
+Implementation of "[Inverting Neural Radiance Fields for Pose Estimation](https://arxiv.org/abs/2012.05877)" using PyTorch.
 ## Installation
 To start, I recommend to create an environment using conda:
 ```
