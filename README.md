@@ -1,5 +1,5 @@
 # iNeRF: Inverting Neural Radiance Fields for 6-DoF Pose Estimation 
-Implementation of "[Inverting Neural Radiance Fields for Pose Estimation](https://arxiv.org/abs/2012.05877)" using PyTorch.
+Implementation of [Inverting Neural Radiance Fields for Pose Estimation](https://arxiv.org/abs/2012.05877) using PyTorch.
 ## Installation
 To start, I recommend to create an environment using conda:
 ```
@@ -21,7 +21,9 @@ If you want to store a gif video of the optimization process, set ```OVERLAY = T
 
 All other parameters such as _batch size_, _sampling strategy_, _initial camera error_ you can adjust in corresponding config [files](https://github.com/salykovaa/inerf/tree/main/configs).
 
-To run the algorithm on the llff dataset, just download the "nerf_llff_data" folder from [here](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1) and put the downloaded folder in the "data" folder. 
+To run the algorithm on the llff dataset, just download the "nerf_llff_data" folder from [here](https://drive.google.com/drive/folders/128yBriW1IG_3NJ5Rp7APSTZsJqdJdfc1) and put the downloaded folder in the "data" folder.
+
+All NeRF models were trained using this code [https://github.com/yenchenlin/nerf-pytorch/](https://github.com/yenchenlin/nerf-pytorch/)
 ```
 ├── data 
 │   ├── nerf_llff_data   
