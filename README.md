@@ -17,7 +17,7 @@ To run the algorithm on _Lego_ object
 ```
 python run.py --config configs/lego.txt
 ```
-If you want to store a gif video of the optimization process, set ```OVERLAY = True``` [here](https://github.com/salykovaa/inerf/blob/a8c996958789168b93e73ed8aee8d6f76ceb0fbc/run.py#L217)
+If you want to store gif video of optimization process, set ```OVERLAY = True``` [here](https://github.com/salykovaa/inerf/blob/a8c996958789168b93e73ed8aee8d6f76ceb0fbc/run.py#L217)
 
 All other parameters such as _batch size_, _sampling strategy_, _initial camera error_ you can adjust in corresponding config [files](https://github.com/salykovaa/inerf/tree/main/configs).
 
