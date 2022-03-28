@@ -30,8 +30,8 @@ def run():
     noise, sigma, amount = args.noise, args.sigma, args.amount
     delta_brightness = args.delta_brightness
 
-    # Load and pre-process the observed image
-    # obs_img - rgb image with elements in range 0...255
+    # Load and pre-process an observed image
+    # obs_img -> rgb image with elements in range 0...255
     if dataset_type == 'blender':
         obs_img, hwf, start_pose, obs_img_pose = load_blender(args.data_dir, model_name, obs_img_num,
                                                 args.half_res, args.white_bkgd, delta_phi, delta_theta, delta_psi, delta_t)
@@ -51,7 +51,7 @@ def run():
 
     obs_img = (np.array(obs_img) / 255.).astype(np.float32)
 
-    # change brightness of the observed image
+    # change brightness of the observed image (to test robustness of inerf)
     if delta_brightness != 0:
         obs_img = (np.array(obs_img) / 255.).astype(np.float32)
         obs_img = cv2.cvtColor(obs_img, cv2.COLOR_RGB2HSV)
@@ -65,7 +65,7 @@ def run():
         obs_img = cv2.cvtColor(obs_img, cv2.COLOR_HSV2RGB)
         show_img("Observed image", obs_img)
 
-    # apply noise to the observed image
+    # apply noise to the observed image (to test robustness of inerf)
     if noise == 'gaussian':
         obs_img_noised = skimage.util.random_noise(obs_img, mode='gaussian', var=sigma**2)
     elif noise == 's_and_p':
@@ -99,7 +99,7 @@ def run():
     interest_regions = np.array(interest_regions, dtype=bool)
     interest_regions = coords[interest_regions]
 
-    # not_POI contains all points except of POI
+    # not_POI -> contains all points except of POI
     coords = coords.reshape(H * W, 2)
     not_POI = set(tuple(point) for point in coords) - set(tuple(point) for point in POI)
     not_POI = np.array([list(point) for point in not_POI]).astype(int)
