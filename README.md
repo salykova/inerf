@@ -56,7 +56,7 @@ Kudos to the authors
   journal={arxiv arXiv:2012.05877},
 }
 ```
-Parts of the code were based on from yenchenlin's NeRF implementation: https://github.com/yenchenlin/nerf-pytorch
+Parts of the code were based on yenchenlin's NeRF implementation: https://github.com/yenchenlin/nerf-pytorch
 ```
 @misc{lin2020nerfpytorch,
   title={NeRF-pytorch},
