@@ -44,7 +44,7 @@ All NeRF models were trained using this code [https://github.com/yenchenlin/nerf
 ![](https://user-images.githubusercontent.com/63703454/122686235-5ad2b480-d210-11eb-87ec-d645ae07b8d7.gif)
 
 Left - **random**, in the middle - **interest points**, right - **interest regions**. 
-Interest regions sampling strategy provides faster convergence and doesnt stuck in a local minimum like interest points. 
+Interest regions sampling strategy provides faster convergence and doesnt stick in a local minimum like interest points. 
 
 ## Citation
 Kudos to the authors
