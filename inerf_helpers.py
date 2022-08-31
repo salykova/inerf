@@ -25,7 +25,6 @@ class camera_transf(nn.Module):
     def forward(self, x):
         exp_i = torch.zeros((4,4))
         w_skewsym = vec2ss_matrix(self.w)
-        v_skewsym = vec2ss_matrix(self.v)
         exp_i[:3, :3] = torch.eye(3) + torch.sin(self.theta) * w_skewsym + (1 - torch.cos(self.theta)) * torch.matmul(w_skewsym, w_skewsym)
         exp_i[:3, 3] = torch.matmul(torch.eye(3) * self.theta + (1 - torch.cos(self.theta)) * w_skewsym + (self.theta - torch.sin(self.theta)) * torch.matmul(w_skewsym, w_skewsym), self.v)
         exp_i[3, 3] = 1.
